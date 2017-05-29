@@ -1,0 +1,17 @@
+{
+  "name": "猿分享",
+  "main": "index.html",
+  "window": {
+    "icon": "nw.icns",
+    "toolbar": false,
+    "width": 330,
+    "height": 260,
+    "position": "mouse",
+    "min_width": 330,
+    "min_height": 250,
+    "show" : true
+  },
+  "webkit": {
+    "plugin": true
+  }
+}

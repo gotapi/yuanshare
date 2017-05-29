@@ -1,0 +1,234 @@
+<html>
+<head>
+    <meta http-equiv=Content-Type content="text/html;charset=utf-8">
+    <script src="js/nodeup.js"></script>
+    <script src="js/jquery-2.0.2.min.js"></script>
+    <script src="js/paste.js"></script>
+</head>
+<body style="-webkit-app-region: drag">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        border: 10px dashed #ccc;
+    }
+
+    #holder {
+        width: 310px;
+        height: 80px;
+        margin: 0px auto;
+        padding-top: 50px;
+        text-align: center;
+        font-size: 1.3em;
+    }
+
+    #holder.hover {
+        border: 10px dashed #000;
+    }
+
+    .copy {
+        width: 300px;
+        margin: 0 auto;
+        /**height:100px !important;*/
+    }
+
+    .copy input {
+        height: 2em;
+        border: 1px dashed gray;
+        width: 100%;
+        display: none;
+    }
+
+    .copied {
+
+        cursor: hand;
+    }
+
+    #url input {
+        display: none;
+    }
+
+    #holder {
+        opacity: 0.6;
+    }
+
+    #himg {
+        margin: 0px auto;
+
+        width:80%;
+        margin-top:1em;
+        /**;*/
+    }
+    #himg .text {
+        border: 1px solid gray;
+        color:darkgray;
+        height:3em;
+        width:250px;
+    }
+</style>
+
+<div id="holder">
+    <div class="copied" data_ya_event="chooseFile" data_ya_id="0">
+        要分享的文件拖到这,<span style="color:#fa3;">or</span>&nbsp;猛击我<br>
+        <span style="font-size: 0.7em;">分享后http地址会自动复制到系统剪贴板</span>
+    </div>
+</div>
+<div class="copy">
+    <div>
+        <input style="cursor:hand;" id="url" data_ya_event="copy" data_ya_id="0">
+    </div>
+</div>
+<div id="himg"  >
+    <textarea class="text">
+        如果您截了屏,可以在这里直接Ctrl-V就可以粘贴图片内容,自动上传
+    </textarea>
+    <div class="placeholder"></div>
+</div>
+
+<input name="file1" type="file" id="choosefile" style="display:none;"/>
+<script>
+    $(document).ready(function () {
+        window.lasturl = "";
+        // prevent default behavior from changing page on dropped file
+        window.ondragover = function (e) {
+            e.preventDefault();
+            return false
+        };
+        window.ondragend = function (e) {
+            e.preventDefault();
+            return false
+        };
+        window.ondrop = function (e) {
+            e.preventDefault();
+            return false
+        };
+
+        var holder = document.getElementById('holder');
+        holder.ondragover = function () {
+            $(this).addClass('hover');
+            return false;
+        };
+        holder.ondragend = function () {
+            $(this).removeClass("hover");
+            return false;
+        };
+        $("#url").click(function () {
+            if (window.lasturl != "") {
+                var gui = require('nw.gui');
+                gui.Shell.openExternal(window.lasturl);
+            }
+        });
+        function upload(file) {
+            console.log("try to upload file:" + file);
+            nodeup_Upload(
+                    "http://up.162cm.com/upload.php", file, null, function (res) {
+                        $("#choosefile").val("");
+                        $("#holder").removeClass("hover");
+                        try {
+                            var jsonobj = JSON.parse(res.body);
+                        } catch (e) {
+                            alert("上传可耻地失败鸟....");
+                            return;
+                        }
+                        var url = jsonobj.url;
+                        window.lasturl = url;
+                        if (jsonobj.code == 200) {
+                            $("#url").val(jsonobj.url).show();
+                            var gui = require('nw.gui');
+                            var clipboard = gui.Clipboard.get();
+                            clipboard.set(url, 'text');
+                            $(".copied").html("分享网址已经复制到剪贴板").show().fadeOut(1500, function () {
+                                $(".copied").show().html(window.old_tip);
+
+                            });
+                        }
+                    }, function (e) {
+                        console.log(e);
+                    }
+            );
+        }
+
+        holder.ondrop = function (e) {
+            e.preventDefault();
+
+            for (var i = 0; i < e.dataTransfer.files.length; ++i) {
+                console.log(e.dataTransfer.files[i].path);
+
+                upload(e.dataTransfer.files[i].path);
+                //console.log(e.dataTransfer.files[i].path);
+            }
+            return false;
+        };
+        $("#choosefile").change(function () {
+            var f = $(this).val();
+            if (f != "" && f != undefined) {
+                upload($(this).val());
+            }
+        });
+        $(".copied").click(function () {
+            $("#choosefile").trigger("click");
+        });
+
+        window.old_tip = $(".copied").html();
+        $('#himg .text').pastableTextarea();
+        $("#himg .text").on("change",function(){
+            $(this).html("如果您截了屏,可以在这里点击一下，再Ctrl-V就可以粘贴图片内容,自动上传");
+        });
+        $("#himg .text").on("pasteImage", function (ev, data) {
+            console.log(data);
+            var blobUrl = URL.createObjectURL(data.blob);
+            var html = $('<div class="result">image: ' + data.width + ' x ' + Math.max(100,data.height) + '<img src="' + data.dataURL +'" ><a href="' + blobUrl + '">' + blobUrl + '</div>').html();
+            $("#himg .placeholder").html(html);
+
+            setTimeout(function(){
+                $("#himg .placeholder").html("");
+            },2000);
+
+            $.post("http://up.162cm.com/img.php", {d: data.dataURL}, function (res) {
+                if (res.code == 200) {
+                    window.lasturl = res.msg;
+                    $("#url").val(res.msg).show();
+                    var gui = require('nw.gui');
+                    var clipboard = gui.Clipboard.get();
+                    clipboard.set(res.msg, 'text');
+                    $(".copied").html("分享网址已经复制到剪贴板").show().fadeOut(1500, function () {
+                        $(".copied").show().html(window.old_tip);
+
+                    });
+                }
+            });
+        });
+    });
+</script>
+<script type="text/javascript">
+    var _YFAConfig = [];
+    _YFAConfig.sid = "2b2dbab6a18d5695ba99510dc0511bb8";
+    _YFAConfig.debug = 0;
+    _YFAConfig.uid = "";//可以填上您网站的用户ID[整型],请参照帮助文档 http://www.yuanfenxi.com/page/help
+    _YFAConfig.page_id = "";//可以填上页面ID,请参照帮助文档 http://www.yuanfenxi.com/page/help
+    _YFAConfig.domainList = "share.yuanfenxi.com";
+</script>
+<script type="text/javascript">
+(function (document) {
+    var img = document.createElement('img');
+    img.style.visibility = 'hidden';
+    var protocol = window.location.protocol;
+    if(protocol!="https:"){
+        protocol = "http:";
+    }
+    img.src = window.location.protocol+"//t.yuanfenxi.com/stat/cookie.gif?";
+    document.getElementsByTagName('body')[0].appendChild(img);
+    img.parentNode.removeChild(img);
+    setTimeout(function() {
+        var b = document.createElement("script");
+        b.type = "text/javascript";
+        b.async = !0;
+        b.src = "undefined" !== typeof BIGEYE_LIB_URL ? BIGEYE_LIB_URL : "file:" === document.location.protocol && "//t.yuanfenxi.com/js/ma.js".match(/^\/\//) ? "https://t.yuanfenxi.com/js/ma.js" : "//t.yuanfenxi.com/js/ma.js";
+        c = document.getElementsByTagName("script")[0];
+        c.parentNode.insertBefore(b, c);
+    },200);
+})(document, window.panel || []);
+</script>
+
+</body>
+</html>
