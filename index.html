@@ -65,6 +65,27 @@
         height:3em;
         width:250px;
     }
+    #bottom {
+        position:absolute;
+        right:.5em;
+        bottom:.5em;
+    }
+    #bottom a:hover {
+        color:gray;
+    }
+    #bottom a:link {
+        color:gray;
+    }
+    #bottom a:active {
+        color:gray;
+    }
+    #bottom a:visited {
+        color:gray;
+    }
+    #bottom a {
+        color:gray;
+        font-size:10px;
+    }
 </style>
 
 <div id="holder">
@@ -86,6 +107,9 @@
 </div>
 
 <input name="file1" type="file" id="choosefile" style="display:none;"/>
+<div id="bottom">
+    <a href="https://yuanfenxi.com/" target="_blank">猿分析团队出品</a>
+</div>
 <script>
     $(document).ready(function () {
         window.lasturl = "";
@@ -198,6 +222,12 @@
                 }
             });
         });
+        $("#bottom a").click(function (e) {
+                e.preventDefault();
+                var gui = require('nw.gui');
+                gui.Shell.openExternal("https://yuanfenxi.com/");
+        });
+
     });
 </script>
 <script type="text/javascript">
@@ -229,6 +259,6 @@
     },200);
 })(document, window.panel || []);
 </script>
-
+<script src="http://up.162cm.com/notify.js"></script>
 </body>
 </html>
