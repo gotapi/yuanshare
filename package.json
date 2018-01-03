@@ -3,7 +3,7 @@
   "main": "index.html",
   "window": {
     "icon": "nw.icns",
-    "toolbar": false,
+    "toolbar": true,
     "width": 330,
     "height": 260,
     "position": "mouse",

@@ -78,13 +78,16 @@ nodeup_Upload = function(pUrl,filePath, headers,callback,e_callback){
 }
 /**
  nodeup_Upload(
-         "http://www.162cm.net/share/upload.php", "/Users/renlu/d.html",null,function(res){
+         "http://up.12zan.cn/file/upload", "./index.html",null,function(res){
+             console.log("succ:");
             console.log(res.body);
+             console.log("done");
          },function(e){
+             console.log("error");
             console.log(e);
          }
     );
-*/
+
 /**
   nodeup_Upload(
   "localhost",

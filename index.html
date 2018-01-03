@@ -145,19 +145,22 @@
         function upload(file) {
             console.log("try to upload file:" + file);
             nodeup_Upload(
-                    "http://up.162cm.com/upload.php", file, null, function (res) {
+                    "http://up.12zan.cn/file/upload", file, null, function (res) {
+                        console.log(res);
                         $("#choosefile").val("");
                         $("#holder").removeClass("hover");
+                        var jsonobj;
                         try {
-                            var jsonobj = JSON.parse(res.body);
+                            jsonobj = JSON.parse(res.body);
+                            console.log(jsonobj);
                         } catch (e) {
                             alert("上传可耻地失败鸟....");
                             return;
                         }
-                        var url = jsonobj.url;
+                        var url = jsonobj.data;
                         window.lasturl = url;
                         if (jsonobj.code == 200) {
-                            $("#url").val(jsonobj.url).show();
+                            $("#url").val(jsonobj.data).show();
                             var gui = require('nw.gui');
                             var clipboard = gui.Clipboard.get();
                             clipboard.set(url, 'text');
@@ -208,13 +211,14 @@
                 $("#himg .placeholder").html("");
             },2000);
 
-            $.post("http://up.162cm.com/img.php", {d: data.dataURL}, function (res) {
+            $.post("http://up.12zan.cn/file/img", {d: data.dataURL}, function (res) {
+                    console.log(res);
                 if (res.code == 200) {
-                    window.lasturl = res.msg;
-                    $("#url").val(res.msg).show();
+                    window.lasturl = res.data;
+                    $("#url").val(res.data).show();
                     var gui = require('nw.gui');
                     var clipboard = gui.Clipboard.get();
-                    clipboard.set(res.msg, 'text');
+                    clipboard.set(res.data, 'text');
                     $(".copied").html("分享网址已经复制到剪贴板").show().fadeOut(1500, function () {
                         $(".copied").show().html(window.old_tip);
 
