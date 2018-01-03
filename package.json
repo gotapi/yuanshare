@@ -1,17 +1,12 @@
 {
-  "name": "猿分享",
-  "main": "index.html",
-  "window": {
-    "icon": "nw.icns",
-    "toolbar": true,
-    "width": 330,
-    "height": 260,
-    "position": "mouse",
-    "min_width": 330,
-    "min_height": 250,
-    "show" : true
+  "name": "RoyiShare",
+  "version": "0.1.0",
+  "author":"黄滚 <hg@yuanli-inc.com>",
+  "main": "main.js",
+  "icon": {
+    "icns": "nw.icns"
   },
-  "webkit": {
-    "plugin": true
+  "dependencies": {
+    "glob": "^7.1.2"
   }
 }
