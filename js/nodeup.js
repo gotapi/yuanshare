@@ -1,11 +1,12 @@
-var url=require("url");
-var fs=require("fs");
-var http=require("http");
+const url=require("url");
+const fs=require("fs");
+const http=require("http");
 nodeup_Upload = function(pUrl,filePath, headers,callback,e_callback){
-    var args = url.parse(pUrl);
-    var options = args;
-    var fileReader   = fs.createReadStream(filePath, {encoding: 'binary'});
-    var fileContents = '';
+    let options = {
+        headers:headers
+    };
+    let fileReader   = fs.createReadStream(filePath, {encoding: 'binary'});
+    let fileContents = '';
     fileReader.on ('data', function(data) {
         fileContents += data;
     });
@@ -22,16 +23,18 @@ nodeup_Upload = function(pUrl,filePath, headers,callback,e_callback){
         postData.push (new Buffer (fileContents, 'binary'));
         postData.push (new Buffer ("\r\n--" + boundary + "--"), 'ascii');
         var postLength = 0;
-        for (var i = 0; i < postData.length; i++) {
+        for (let i = 0; i < postData.length; i++) {
             postLength += postData[i].length;
         }
-        var must_headers = {
+        let must_headers = {
             'Content-Type': 'multipart/form-data;boundary="' + boundary + '"',
             'Content-Length': postLength,
             'Connection': 'close'
         }
-        if(!options.headers) options.headers={};
-        for(var temp_index in must_headers){
+        if(!options.headers) {
+            options.headers = {};
+        }
+        for(let temp_index in must_headers){
             options.headers[temp_index]=must_headers[temp_index];
         }
         options.method  = "POST";
@@ -40,16 +43,14 @@ nodeup_Upload = function(pUrl,filePath, headers,callback,e_callback){
           body = qs.stringify(body);
         //options.headers['Content-Length'] = Buffer.byteLength(body)+postLength;
         }*/
-        var req = http.request(options, function(res) {
-
-
-            var body = new Buffer(1024*10);
-            var size = 0;
+        let req = http.request(pUrl,options, function(res) {
+            let body = new Buffer(1024*10);
+            let size = 0;
             res.on('data', function (chunk) {
                 size+=chunk.length;
                 if(size>body.length){//每次扩展10kb
-                    var ex = Math.ceil(size/(1024*10));
-                    var tmp = new Buffer(ex * 1024*10);
+                    let ex = Math.ceil(size/(1024*10));
+                    let tmp = new Buffer(ex * 1024*10);
                     body.copy(tmp);
                     body = tmp;
                 }
@@ -67,38 +68,12 @@ nodeup_Upload = function(pUrl,filePath, headers,callback,e_callback){
           console.log("写消息:"+body);  
           req.write(body);
           }*/
-        for (var i = 0; i < postData.length; i++) {
+        for (let i = 0; i < postData.length; i++) {
             req.write (postData[i]);
         }
-        req.on ('error', function(e) {
+        req.on('error', function(e) {
             if(e_callback) e_callback (e);
         });
         req.end();
     });
 }
-/**
- nodeup_Upload(
-         "http://up.12zan.cn/file/upload", "./index.html",null,function(res){
-             console.log("succ:");
-            console.log(res.body);
-             console.log("done");
-         },function(e){
-             console.log("error");
-            console.log(e);
-         }
-    );
-
-/**
-  nodeup_Upload(
-  "localhost",
-  "/b.php",
-  "/Users/renlu/d.html",
-  {},
-  function(res){
-  console.log(res.headers);
-  console.log(res.body);
-  var jso = JSON.parse(res.body);
-  console.log(jso.url);
-  } 
-  );
-  */

@@ -42,6 +42,7 @@
     .copied {
 
         cursor: hand;
+        color: #63637d;
     }
 
     #url input {
@@ -55,41 +56,48 @@
     #himg {
         margin: 0px auto;
 
-        width:80%;
-        margin-top:1em;
+        width: 80%;
+        margin-top: 1em;
         /**;*/
     }
+
     #himg .text {
         border: 1px solid gray;
-        color:darkgray;
-        height:3em;
-        width:250px;
+        color: darkgray;
+        height: 3em;
+        width: 250px;
     }
+
     #bottom {
-        position:absolute;
-        right:.5em;
-        bottom:.5em;
+        position: absolute;
+        right: .5em;
+        bottom: .5em;
     }
+
     #bottom a:hover {
-        color:gray;
+        color: gray;
     }
+
     #bottom a:link {
-        color:gray;
+        color: gray;
     }
+
     #bottom a:active {
-        color:gray;
+        color: gray;
     }
+
     #bottom a:visited {
-        color:gray;
+        color: gray;
     }
+
     #bottom a {
-        color:gray;
-        font-size:10px;
+        color: gray;
+        font-size: 13px;
     }
 </style>
 
 <div id="holder">
-    <div class="copied" data_ya_event="chooseFile" data_ya_id="0">
+    <div class="copied" id="copied" data_ya_event="chooseFile" data_ya_id="0">
         要分享的文件拖到这,<span style="color:#fa3;">or</span>&nbsp;猛击我<br>
         <span style="font-size: 0.7em;">分享后http地址会自动复制到系统剪贴板</span>
     </div>
@@ -99,164 +107,18 @@
         <input style="cursor:hand;" id="url" data_ya_event="copy" data_ya_id="0">
     </div>
 </div>
-<div id="himg"  >
-    <textarea class="text">
-        如果您截了屏,可以在这里直接Ctrl-V就可以粘贴图片内容,自动上传
-    </textarea>
+<div id="himg">
+    <label>
+<textarea class="text">
+    如果您截了屏,在这个输入框里直接Ctrl-V就可以粘贴图片内容,自动上传
+</textarea>
+    </label>
     <div class="placeholder"></div>
 </div>
 
 <input name="file1" type="file" id="choosefile" style="display:none;"/>
 <div id="bottom">
-    <a href="http://162cm.com/" target="_blank">黄滚出品</a>
+    <a href="https://404.ms/" id="author" target="_blank">404.ms 出品</a>
 </div>
-<script>
-const {clipboard} = require('electron');
-
-    $(document).ready(function () {
-        window.lasturl = "";
-        // prevent default behavior from changing page on dropped file
-        window.ondragover = function (e) {
-            e.preventDefault();
-            return false
-        };
-        window.ondragend = function (e) {
-            e.preventDefault();
-            return false
-        };
-        window.ondrop = function (e) {
-            e.preventDefault();
-            return false
-        };
-
-        var holder = document.getElementById('holder');
-        holder.ondragover = function () {
-            $(this).addClass('hover');
-            return false;
-        };
-        holder.ondragend = function () {
-            $(this).removeClass("hover");
-            return false;
-        };
-        $("#url").click(function () {
-            if (window.lasturl != "") {               
-                require('electron').remote.shell.openExternal(window.lasturl);               
-            }
-        });
-        function upload(file) {
-            console.log("try to upload file:" + file);
-            nodeup_Upload(
-                    "http://up.12zan.cn/file/upload", file, null, function (res) {
-                        console.log(res);
-                        $("#choosefile").val("");
-                        $("#holder").removeClass("hover");
-                        var jsonobj;
-                        try {
-                            jsonobj = JSON.parse(res.body);
-                            console.log(jsonobj);
-                        } catch (e) {
-                            alert("上传可耻地失败鸟....");
-                            return;
-                        }
-                        var url = jsonobj.data;
-                        window.lasturl = url;
-                        if (jsonobj.code == 200) {
-                            $("#url").val(jsonobj.data).show();                          
-
-                            clipboard.writeText(url);	
-                            $(".copied").html("分享网址已经复制到剪贴板").show().fadeOut(1500, function () {
-                                $(".copied").show().html(window.old_tip);
-
-                            });
-                            let myNotification = new Notification('分享成功', {
-                        		body: '分享网址已经更新到剪贴板'
-                    		});
-
-                        }
-                    }, function (e) {
-                        console.log(e);
-                    }
-            );
-        }
-
-        holder.ondrop = function (e) {
-            e.preventDefault();
-
-            for (var i = 0; i < e.dataTransfer.files.length; ++i) {
-                console.log(e.dataTransfer.files[i].path);
-
-                upload(e.dataTransfer.files[i].path);
-                //console.log(e.dataTransfer.files[i].path);
-            }
-            return false;
-        };
-        $("#choosefile").change(function () {
-            var f = $(this).val();
-            if (f != "" && f != undefined) {
-                upload($(this).val());
-            }
-        });
-        $(".copied").click(function () {
-            $("#choosefile").trigger("click");
-        });
-
-        window.old_tip = $(".copied").html();
-        $('#himg .text').pastableTextarea();
-        $("#himg .text").on("change",function(){
-            $(this).html("如果您截了屏,可以在这里点击一下，再Ctrl-V就可以粘贴图片内容,自动上传");
-        });
-        $("#himg .text").on("pasteImage", function (ev, data) {
-            console.log(data);
-            var blobUrl = URL.createObjectURL(data.blob);
-            var html = $('<div class="result">image: ' + data.width + ' x ' + Math.max(100,data.height) + '<img src="' + data.dataURL +'" ><a href="' + blobUrl + '">' + blobUrl + '</div>').html();
-            $("#himg .placeholder").html(html);
-
-            setTimeout(function(){
-                $("#himg .placeholder").html("");
-            },2000);
-
-            $.post("http://up.12zan.cn/file/img", {d: data.dataURL}, function (res) {
-                    console.log(res);
-                if (res.code == 200) {
-                    window.lasturl = res.data;
-                    $("#url").val(res.data).show();
-                  
-                    clipboard.writeText(res.data);
-                    let myNotification = new Notification('分享成功', {
-                        body: '分享网址已经更新到剪贴板'
-                    });
-
-                    $(".copied").html("分享网址已经复制到剪贴板").show().fadeOut(1500, function () {
-                        $(".copied").show().html(window.old_tip);
-                    });
-                }
-            });
-        });
-        $("#bottom a").click(function (e) {
-                e.preventDefault();
-                require('electron').remote.shell.openExternal('http://162cm.com/');
-        });
-
-    });
-</script>
-<script type="text/javascript">
-    var _YFAConfig = [];
-    _YFAConfig.sid = "ef3696512aed646ff42daff6847ee8a1";
-    _YFAConfig.debug = 0;
-    _YFAConfig.uid = "";//可以填上您网站的用户ID[整型],请参照帮助文档 http://www.yuanfenxi.com/page/help
-    _YFAConfig.page_id = "RoyiShare";//可以填上页面ID,请参照帮助文档 http://www.yuanfenxi.com/page/help
-    _YFAConfig.domainList = "162cm.com,162cm.net";
-</script>
-<script type="text/javascript">
-    (function (document) {
-        let b = document.createElement("script");
-        b.type = "text/javascript";
-        b.async = !0;
-        let u = "undefined" !== typeof BIGEYE_LIB_URL ? BIGEYE_LIB_URL : "file:" === document.location.protocol && "//t.yuanfenxi.com/js/ma.js".match(/^\/\//) ? "https://t.yuanfenxi.com/js/ma.js" : "//t.yuanfenxi.com/js/ma.js";
-        b.src = u+'?_ts=' + (new Date().getTime());
-        let c = document.getElementsByTagName("script")[0];
-        c.parentNode.insertBefore(b, c);
-    })(document);
-</script>
 </body>
 </html>

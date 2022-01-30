@@ -1,18 +1,44 @@
 const path = require('path');
 const electron = require('electron');
-const {app, Menu} = require('electron');
-const autoUpdater = require('./auto-updater');
-
+const {app, Menu,dialog,Tray} = require('electron');
+const storage = require('./storage');
+const os = require("os")
+storage.setStoragePath(path.join(os.homedir(),"/.404up.json"))
+storage.init();
+const ipc = require('electron').ipcMain;
+//const autoUpdater = require('./auto-updater');
+try {
+    require('electron-reloader')(module)
+} catch (_) {}
 const BrowserWindow = electron.BrowserWindow;
 
-//console.log(app);
+
+let loginWindow;
+const debug = true;
+let mainWindow = null;
+// /--debug/.test(process.argv[2]);
+
+if (process.mas) {
+    app.setName('404.up');
+}
 
 
-const debug = /--debug/.test(process.argv[2]);
 
-if (process.mas) app.setName('Royi.Share');
+const windowOptions = {
+    width: 330,
+    minWidth: 330,
+    height: 260,
+    maxWidth:1330,
+    maxHeight:1260,
+    title: app.getName(),
+    webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        nodeIntegration: true,
+        contextIsolation: false,
+        enableRemoteModule:true
+    }
+};
 
-var mainWindow = null;
 
 function initMenus(){
     const template = [
@@ -59,7 +85,7 @@ function initMenus(){
 
     if (process.platform === 'darwin') {
         template.unshift({
-            label: "RoyiShare",
+            label: "404.up",
             submenu: [
                 {role: 'about'},
                 {type: 'separator'},
@@ -100,45 +126,91 @@ function initMenus(){
         app.setApplicationMenu(menu)
     }
 }
-function initialize () {
-  var shouldQuit = makeSingleInstance()
-  if (shouldQuit) return app.quit()
-
-  loadDemos()
-
-  function createWindow () {
-    var windowOptions = {
-      width: 330,
-      minWidth: 330,
-      height: 260,
-      maxWidth:330,
-      maxHeight:260,
-      title: app.getName()
-    };
-
-    if (process.platform === 'linux') {
-      windowOptions.icon = path.join(__dirname, '/assets/app-icon/png/512.png')
+function createMainWindow(){
+    if(mainWindow!=null){
+        return
     }
-
     mainWindow = new BrowserWindow(windowOptions)
     mainWindow.loadURL(path.join('file://', __dirname, '/index.html'))
 
     // Launch fullscreen with DevTools open, usage: npm run debug
     if (debug) {
-      mainWindow.webContents.openDevTools()
-      mainWindow.maximize()
-      //require('devtron').install()
+        mainWindow.webContents.openDevTools()
+        mainWindow.maximize()
+        //require('devtron').install()
     }
 
     mainWindow.on('closed', function () {
-      mainWindow = null
+        mainWindow = null
     });
-    initMenus();
-  }
+
+}
+function createLoginWindow(){
+    if(loginWindow!=null){
+        return
+    }
+    loginWindow = new BrowserWindow({
+        height:600,
+        width:800,
+        webPreferences: {
+            preload: path.join(__dirname, 'loginPreload.js'),
+            nodeIntegration: true,
+            contextIsolation: true,
+            enableRemoteModule:true
+        }
+    });
+    loginWindow.loadURL(path.join('file://', __dirname, '/login.html'));
+    loginWindow.on('closed', function () {
+        loginWindow = null
+    });
+}
+function createWindow () {
+    if (process.platform === 'linux') {
+        windowOptions.icon = path.join(__dirname, '/assets/icons/mac/icon.png')
+    }
+    let token = storage.getItem("token")
+    if (token == null||token === ""){
+        createLoginWindow();
+    }else{
+        createMainWindow();
+    }
+    initMenus()
+}
+
+
+function closeLoginWindow(){
+    if(loginWindow!=null){
+        try{
+            loginWindow.hide();
+            loginWindow = null;
+        }catch (e) {
+
+        }
+    }
+}
+
+function closeMainWindow(){
+    if(mainWindow!=null){
+        try{
+            mainWindow.hide();
+            mainWindow = null;
+        }catch (e) {
+
+        }
+    }
+}
+
+function initialize () {
+  let shouldQuit = makeSingleInstance()
+  if (shouldQuit) return app.quit()
+
+  loadDemos()
+
 
   app.on('ready', function () {
     createWindow();
-    autoUpdater.initialize()
+
+    //#autoUpdater.initialize()
   });
 
   app.on('window-all-closed', function () {
@@ -162,17 +234,18 @@ function initialize () {
 function makeSingleInstance () {
   if (process.mas) return false
 
+	/*
   return app.makeSingleInstance(function () {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
     }
-  })
+  })*/
 }
 
 // Require each JS file in the main-process dir
 function loadDemos () {
-  autoUpdater.updateMenu()
+  //autoUpdater.updateMenu()
 }
 
 // Handle Squirrel on Windows startup events
@@ -190,3 +263,43 @@ switch (process.argv[1]) {
   default:
     initialize()
 }
+ipc.on("need-login",()=>{
+    console.log("need-login msg got")
+    try{
+        createLoginWindow();
+        closeMainWindow();
+    }
+    catch (e){
+    }
+
+});
+
+ipc.on("update-token",(event, args)=>{
+    console.log("got token")
+    storage.sync();
+    let succ = storage.setItem("token",args[0])
+    console.log("save succ:")
+    console.log(succ)
+    try {
+        createMainWindow();
+        closeLoginWindow();
+    }catch (e) {
+
+    }
+
+})
+ipc.on('open-file-dialog-for-file', function (event) {
+    if(os.platform() === 'linux' || os.platform() === 'win32'){
+        dialog.showOpenDialog({
+            properties: ['openFile']
+        }, function (files) {
+            if (files) event.sender.send('selected-file', files[0]);
+        });
+    } else {
+        dialog.showOpenDialog({
+            properties: ['openFile', 'openDirectory']
+        }).then ( files => {
+            console.log(files);
+            if (files) event.sender.send('selected-file', files);
+        });
+    }});
